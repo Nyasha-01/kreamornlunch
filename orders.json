@@ -1,0 +1,22 @@
+{
+  "2025-06-09": {
+    "admin": {
+      "date_ordered": "2025-06-12 08:55:38",
+      "user_id": "admin",
+      "weekly_order": true,
+      "proteins": "1",
+      "starch": "3",
+      "salad": "55"
+    }
+  },
+  "2025-06-12": {
+    "admin": {
+      "date_ordered": "2025-06-12 08:55:38",
+      "user_id": "admin",
+      "weekly_order": true,
+      "proteins": "ff",
+      "starch": "ff",
+      "salad": "hh"
+    }
+  }
+}

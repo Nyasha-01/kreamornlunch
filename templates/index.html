@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workplace Lunch Orders</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #dc2626, #ef4444, #f87171);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 60px 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            background: linear-gradient(45deg, #dc2626, #f59e0b);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            box-shadow: 0 10px 30px rgba(220, 38, 38, 0.3);
+        }
+
+        h1 {
+            color: #dc2626;
+            margin-bottom: 15px;
+            font-size: 2.5em;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+            font-weight: 300;
+        }
+
+        .buttons-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .button {
+            display: block;
+            padding: 18px 40px;
+            background: linear-gradient(45deg, #dc2626, #ef4444);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .button:hover:before {
+            left: 100%;
+        }
+
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(220, 38, 38, 0.4);
+        }
+
+        .admin-button {
+            background: linear-gradient(45deg, #f59e0b, #fbbf24);
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+        }
+
+        .admin-button:hover {
+            box-shadow: 0 12px 30px rgba(245, 158, 11, 0.4);
+        }
+
+        .food-icons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            opacity: 0.7;
+        }
+
+        .food-icon {
+            font-size: 2em;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .food-icon:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .food-icon:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 30px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .logo {
+                width: 100px;
+                height: 100px;
+                font-size: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Auto-hide flash messages after 3 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                setTimeout(function() {
+                    message.style.transition = 'opacity 0.5s ease-out';
+                    message.style.opacity = '0';
+                    setTimeout(function() {
+                        message.remove();
+                    }, 500);
+                }, 3000);
+            });
+        });
+    </script>
+    <div class="container">
+        <div class="logo">🍽️</div>
+        <h1>Lunch Orders</h1>
+        <p class="subtitle">Delicious meals, effortless ordering</p>
+
+        <div class="buttons-container">
+            {% if user %}
+                <div class="welcome-message">
+                    <p style="color: #374151; margin-bottom: 20px; font-size: 1.1em;">
+                        Welcome back, <strong>{{ user.full_name }}</strong>! 👋
+                    </p>
+                </div>
+                <a href="{{ url_for('weekly_order_page') }}" class="button">
+                    📅 Order for Whole Week
+                </a>
+                {% if user.is_admin %}
+                    <a href="{{ url_for('admin_page') }}" class="button admin-button">
+                        ⚙️ Admin Panel
+                    </a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}" class="button" style="background: linear-gradient(45deg, #6b7280, #9ca3af);">
+                    🚪 Logout
+                </a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="button">
+                    🔓 Login
+                </a>
+                <a href="{{ url_for('register') }}" class="button">
+                    📝 Register
+                </a>
+            {% endif %}
+        </div>
+
+        <div class="food-icons">
+            <span class="food-icon">🥗</span>
+            <span class="food-icon">🍖</span>
+            <span class="food-icon">🍚</span>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{
+  "Monday": {
+    "proteins": [
+      "1"
+    ],
+    "starch": [
+      "3"
+    ],
+    "salad": [
+      "55"
+    ]
+  },
+  "Tuesday": {
+    "proteins": [],
+    "starch": [],
+    "salad": []
+  },
+  "Wednesday": {
+    "proteins": [],
+    "starch": [],
+    "salad": []
+  },
+  "Thursday": {
+    "proteins": [
+      "ff"
+    ],
+    "starch": [
+      "ff"
+    ],
+    "salad": [
+      "ff",
+      "hh"
+    ]
+  },
+  "Friday": {
+    "proteins": [],
+    "starch": [],
+    "salad": []
+  },
+  "Saturday": {
+    "proteins": [],
+    "starch": [],
+    "salad": []
+  },
+  "Sunday": {
+    "proteins": [],
+    "starch": [],
+    "salad": []
+  }
+}
