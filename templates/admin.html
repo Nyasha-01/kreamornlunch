@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -125,23 +126,6 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             margin-bottom: 30px;
             backdrop-filter: blur(10px);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .admin-badge {
-            display: inline-block;
-            background: linear-gradient(45deg, #f59e0b, #fbbf24);
-            color: white;
-            padding: 10px 25px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3);
         }
 
         h1, h2 {
@@ -582,12 +566,6 @@
     <!-- Main Content -->
     <div class="main-content" id="mainContent">
         <div class="container">
-            <div class="header">
-                <div class="admin-badge">⚙️ Admin Access</div>
-                <h1>Admin Dashboard</h1>
-                <p style="color: #6b7280; margin-top: 10px;">Manage your lunch ordering system</p>
-            </div>
-
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
                     <div class="flash-messages">
@@ -604,49 +582,107 @@
 
                 <div class="admin-order-form">
                     <h3 style="margin-bottom: 20px; color: #dc2626;">Add New Category</h3>
-                    <form method="POST" action="{{ url_for('add_category') }}" style="display: flex; gap: 15px; align-items: end;">
-                        <div class="form-group" style="flex: 1;">
-                            <label for="category_name">Category Name:</label>
-                            <input type="text" id="category_name" name="category_name" required placeholder="e.g., drinks, desserts" class="admin-input">
+                    <form method="POST" action="{{ url_for('add_category') }}" onsubmit="return submitFormWithCurrentSection(this)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="category_name">Category Name:</label>
+                                <input type="text" id="category_name" name="category_name" required placeholder="e.g., drinks, desserts" class="admin-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="category_scope">Add to:</label>
+                                <select id="category_scope" name="category_scope" class="admin-select">
+                                    <option value="all_days">All Days</option>
+                                    {% for day in days %}
+                                        <option value="{{ day }}">{{ day }} Only</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
-                        <button type="submit" class="add-btn" style="height: fit-content; padding: 12px 20px;">➕ Add Category</button>
+                        <input type="hidden" name="current_section" value="categories">
+                        <button type="submit" class="admin-order-btn">➕ Add Category</button>
                     </form>
+                </div>
 
-                    <div style="margin-top: 20px;">
-                        <h4 style="margin-bottom: 10px; color: #374151;">Current Categories:</h4>
-                        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                            {% for category in categories %}
-                                <div style="background: {% if category in exclusive_categories %}#fef3c7{% else %}#f3f4f6{% endif %}; padding: 8px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px; border: 1px solid {% if category in exclusive_categories %}#f59e0b{% else %}#d1d5db{% endif %};">
-                                    <span>{{ category.title() }}</span>
-                                    {% if category in exclusive_categories %}
-                                        <span style="color: #92400e; font-size: 12px; font-weight: 600;">🔒 EXCLUSIVE</span>
-                                    {% endif %}
+                <div style="margin-top: 20px;">
+                    <h4 style="margin-bottom: 10px; color: #374151;">Global Categories (All Days):</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                        {% for category in categories %}
+                            <div style="background: {% if category in exclusive_categories %}#fef3c7{% else %}#f3f4f6{% endif %}; padding: 8px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px; border: 1px solid {% if category in exclusive_categories %}#f59e0b{% else %}#d1d5db{% endif %};">
+                                <span>{{ category.title() }}</span>
+                                {% if category in exclusive_categories %}
+                                    <span style="color: #92400e; font-size: 12px; font-weight: 600;">🔒 EXCLUSIVE</span>
+                                {% endif %}
 
-                                    {% if category not in ['proteins', 'starch', 'salad'] %}
-                                        <form method="POST" action="{{ url_for('remove_category') }}" style="display: inline; margin-left: 5px;" onsubmit="return confirm('Are you sure you want to remove the {{ category }} category? This will remove it from all menus.')">
-                                            <input type="hidden" name="category_name" value="{{ category }}">
-                                            <button type="submit" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 12px; font-size: 10px; cursor: pointer;">×</button>
-                                        </form>
-                                    {% endif %}
-
-                                    <form method="POST" action="{{ url_for('toggle_exclusive_category') }}" style="display: inline; margin-left: 5px;">
+                                {% if category not in ['proteins', 'starch', 'salad'] %}
+                                    <form method="POST" action="{{ url_for('remove_global_category') }}" style="display: inline; margin-left: 5px;" onsubmit="return confirm('Are you sure you want to remove the {{ category }} category? This will remove it from all menus.')">
                                         <input type="hidden" name="category_name" value="{{ category }}">
-                                        {% if category in exclusive_categories %}
-                                            <input type="hidden" name="action" value="make_normal">
-                                            <button type="submit" style="background: #059669; color: white; border: none; padding: 4px 8px; border-radius: 12px; font-size: 10px; cursor: pointer;">🔓</button>
-                                        {% else %}
-                                            <input type="hidden" name="action" value="make_exclusive">
-                                            <button type="submit" style="background: #f59e0b; color: white; border: none; padding: 4px 8px; border-radius: 12px; font-size: 10px; cursor: pointer;">🔒</button>
-                                        {% endif %}
+                                        <input type="hidden" name="current_section" value="categories">
+                                        <button type="submit" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 12px; font-size: 10px; cursor: pointer;">×</button>
                                     </form>
+                                {% endif %}
+
+                                <form method="POST" action="{{ url_for('toggle_exclusive_category') }}" style="display: inline; margin-left: 5px;">
+                                    <input type="hidden" name="category_name" value="{{ category }}">
+                                    {% if category in exclusive_categories %}
+                                        <input type="hidden" name="action" value="make_normal">
+                                        <button type="submit" style="background: #059669; color: white; border: none; padding: 4px 8px; border-radius: 12px; font-size: 10px; cursor: pointer;">🔓</button>
+                                    {% else %}
+                                        <input type="hidden" name="action" value="make_exclusive">
+                                        <button type="submit" style="background: #f59e0b; color: white; border: none; padding: 4px 8px; border-radius: 12px; font-size: 10px; cursor: pointer;">🔒</button>
+                                    {% endif %}
+                                </form>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <h4 style="margin-bottom: 10px; color: #374151;">Day-Specific Categories:</h4>
+                    {% for day in days %}
+                        {% set day_categories = weekly_menu[day].keys() | list %}
+                        {% set day_specific_categories = [] %}
+                        {% for cat in day_categories %}
+                            {% if cat not in categories %}
+                                {% set _ = day_specific_categories.append(cat) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if day_specific_categories %}
+                            <div style="margin-bottom: 15px;">
+                                <h5 style="color: #374151; margin-bottom: 8px;">{{ day }}:</h5>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    {% for category in day_specific_categories %}
+                                        <div style="background: #e0f2fe; padding: 6px 12px; border-radius: 15px; display: flex; align-items: center; gap: 6px; border: 1px solid #0284c7;">
+                                            <span style="font-size: 14px;">{{ category.title() }}</span>
+                                            <form method="POST" action="{{ url_for('remove_day_category') }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to remove the {{ category }} category from {{ day }}?')">
+                                                <input type="hidden" name="category_name" value="{{ category }}">
+                                                <input type="hidden" name="day_name" value="{{ day }}">
+                                                <input type="hidden" name="current_section" value="categories">
+                                                <button type="submit" style="background: #dc2626; color: white; border: none; padding: 2px 6px; border-radius: 8px; font-size: 8px; cursor: pointer;">×</button>
+                                            </form>
+                                        </div>
+                                    {% endfor %}
                                 </div>
-                            {% endfor %}
-                        </div>
-                        <div style="margin-top: 15px; padding: 10px; background: #fef3c7; border-radius: 8px; border: 1px solid #f59e0b;">
-                            <p style="margin: 0; font-size: 14px; color: #92400e;">
-                                <strong>🔒 Exclusive Categories:</strong> When a user selects an option from an exclusive category (like snackbox), they cannot select from other categories. Use this for meal replacement options.
-                            </p>
-                        </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% set has_day_specific = false %}
+                    {% for day in days %}
+                        {% set day_categories = weekly_menu[day].keys() | list %}
+                        {% for cat in day_categories %}
+                            {% if cat not in categories %}
+                                {% set has_day_specific = true %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    
+                    {% if not has_day_specific %}
+                        <p style="color: #6b7280; font-style: italic; margin-bottom: 20px;">No day-specific categories yet. Add categories to specific days using the form above.</p>
+                    {% endif %}
+
+                    <div style="margin-top: 15px; padding: 10px; background: #fef3c7; border-radius: 8px; border: 1px solid #f59e0b;">
+                        <p style="margin: 0; font-size: 14px; color: #92400e;">
+                            <strong>🔒 Exclusive Categories:</strong> When a user selects an option from an exclusive category (like snackbox), they cannot select from other categories. Use this for meal replacement options.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -654,6 +690,63 @@
             <!-- Menu Management Section -->
             <div class="content-section active" id="menu-management-section">
                 <h2>🍽️ Update Weekly Menu</h2>
+
+                <!-- Menu Management Shortcuts -->
+                <div class="admin-order-form" style="margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 20px; color: #dc2626;">⚡ Quick Menu Actions</h3>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>📋 Copy Menu Between Days:</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <select id="copy-from-day" class="admin-select" style="flex: 1;">
+                                    <option value="">Copy from...</option>
+                                    {% for day in days %}
+                                        <option value="{{ day }}">{{ day }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span>→</span>
+                                <select id="copy-to-day" class="admin-select" style="flex: 1;">
+                                    <option value="">Copy to...</option>
+                                    {% for day in days %}
+                                        <option value="{{ day }}">{{ day }}</option>
+                                    {% endfor %}
+                                    <option value="ALL_DAYS">All Days</option>
+                                </select>
+                                <button type="button" onclick="copyMenu()" class="add-btn">📋 Copy</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>📝 Bulk Import Menu (one item per line):</label>
+                            <div style="display: flex; gap: 10px;">
+                                <select id="bulk-category" class="admin-select" style="width: 150px;">
+                                    {% for category in categories %}
+                                        <option value="{{ category }}">{{ category.title() }}</option>
+                                    {% endfor %}
+                                </select>
+                                <select id="bulk-target-day" class="admin-select" style="width: 150px;">
+                                    {% for day in days %}
+                                        <option value="{{ day }}">{{ day }}</option>
+                                    {% endfor %}
+                                    <option value="ALL_DAYS">All Days</option>
+                                </select>
+                                <button type="button" onclick="showBulkImport()" class="add-btn">📝 Bulk Import</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <button type="button" onclick="showPdfUpload()" class="add-btn" style="width: 100%;">📄 Upload Menu from PDF</button>
+                        </div>
+                        <div class="form-group">
+                            <button type="button" onclick="clearAllMenus()" class="remove-btn" style="width: 100%;">🧹 Clear All Menus</button>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="day-selector">
                     <label for="day-select">Select Day to Edit:</label>
@@ -666,17 +759,38 @@
                     </select>
                 </div>
 
-                <form method="POST" action="{{ url_for('update_weekly_menu') }}" id="menuForm">
+                <form method="POST" action="{{ url_for('update_weekly_menu') }}" id="menuForm" onsubmit="return submitFormWithCurrentSection(this)">
                     {% for day in days %}
                         <div class="day-section {% if day == current_day %}current-day{% endif %}" id="day-{{ day }}" style="{% if day != current_day %}display: none;{% endif %}">
                             <div class="day-header">
                                 📅 {{ day }}{% if day == current_day %} (Today){% endif %}
                             </div>
 
+                            {% set all_categories = [] %}
+                            
+                            {# First add global categories #}
                             {% for category in categories %}
+                                {% if category not in all_categories %}
+                                    {% set _ = all_categories.append(category) %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {# Then add any day-specific categories that aren't in global list #}
+                            {% for category in weekly_menu[day].keys() %}
+                                {% if category not in all_categories %}
+                                    {% set _ = all_categories.append(category) %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% for category in all_categories %}
                                 {% set category_icon = '🍖' if category == 'proteins' else '🍚' if category == 'starch' else '🥗' if category == 'salad' else '🍽️' %}
                                 <div class="category-group">
-                                    <div class="category-label">{{ category_icon }} {{ category.title() }}:</div>
+                                    <div class="category-label">
+                                        {{ category_icon }} {{ category.title() }}
+                                        {% if category not in categories %}
+                                            <span style="color: #0284c7; font-size: 12px; background: #e0f2fe; padding: 2px 6px; border-radius: 10px; margin-left: 5px;">{{ day }} Only</span>
+                                        {% endif %}
+                                    </div>
                                     <div id="{{ category }}-{{ day }}-container">
                                         {% for item in weekly_menu[day].get(category, []) %}
                                             <div class="menu-item-input">
@@ -695,13 +809,14 @@
                         </div>
                     {% endfor %}
 
+                    <input type="hidden" name="current_section" value="menu-management">
                     <button type="submit" class="submit-btn">✨ Update Weekly Menu</button>
                 </form>
             </div>
 
             <!-- User Management Section -->
             <div class="content-section" id="user-management-section">
-        <h2>👥 Manage Admin Users</h2>
+                <h2>👥 Manage Admin Users</h2>
 
                 <div class="admin-order-form" style="margin-bottom: 30px;">
                     <h3 style="margin-bottom: 20px; color: #dc2626;">Create New Account</h3>
@@ -755,8 +870,7 @@
                                         </td>
                                         <td>
                                             {% if user.is_admin %}
-                                                <span style```python
-="color: #dc2626; font-weight: 600;">🛡️ Admin</span>
+                                                <span style="color: #dc2626; font-weight: 600;">🛡️ Admin</span>
                                             {% else %}
                                                 <span style="color: #6b7280;">👤 User</span>
                                             {% endif %}
@@ -798,7 +912,7 @@
             <div class="content-section" id="place-order-section">
                 <h2>🛒 Place Order for Someone</h2>
 
-                <form method="POST" action="{{ url_for('admin_place_order') }}" class="admin-order-form">
+                <form method="POST" action="{{ url_for('admin_place_order') }}" class="admin-order-form" onsubmit="return submitFormWithCurrentSection(this)">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="admin_user_name">👤 Person's Name:</label>
@@ -807,27 +921,23 @@
 
                         <div class="form-group">
                             <label for="admin_order_date">📅 Order Date:</label>
-                            <input type="date" id="admin_order_date" name="order_date" value="{{ selected_date }}" class="admin-input">
+                            <input type="date" id="admin_order_date" name="order_date" value="{{ selected_date }}" class="admin-input" onchange="updateOrderMenuForDate()">
                         </div>
                     </div>
 
-                    <div class="form-row">
+                    <div class="form-row" id="order-menu-container">
                         {% for category in categories %}
                             {% set category_icon = '🍖' if category == 'proteins' else '🍚' if category == 'starch' else '🥗' if category == 'salad' else '🍽️' %}
                             <div class="form-group">
                                 <label for="admin_{{ category }}">{{ category_icon }} {{ category.title() }}:</label>
                                 <select id="admin_{{ category }}" name="{{ category }}" class="admin-select">
                                     <option value="">Select {{ category }}</option>
-                                    {% for day, menu in weekly_menu.items() %}
-                                        {% for item in menu.get(category, []) %}
-                                            <option value="{{ item }}">{{ item }}</option>
-                                        {% endfor %}
-                                    {% endfor %}
                                 </select>
                             </div>
                         {% endfor %}
                     </div>
 
+                    <input type="hidden" name="current_section" value="place-order">
                     <button type="submit" class="admin-order-btn">🛒 Place Order for This Person</button>
                 </form>
             </div>
@@ -838,13 +948,14 @@
 
                 <div class="admin-order-form" style="margin-bottom: 30px;">
                     <h3 style="margin-bottom: 20px; color: #dc2626;">💰 Meal Pricing</h3>
-                    <form method="POST" action="{{ url_for('update_meal_price') }}">
+                    <form method="POST" action="{{ url_for('update_meal_price') }}" onsubmit="return submitFormWithCurrentSection(this)">
                         <div class="form-group">
                             <label for="meal_price">💵 Set Meal Price:</label>
                             <input type="number" step="0.01" name="meal_price" id="meal_price" 
                                    value="{{ meal_price or '' }}" placeholder="3.50" required class="admin-input">
                             <small style="color: #6b7280; font-size: 14px;">This price will be applied to all orders in the Excel export</small>
                         </div>
+                        <input type="hidden" name="current_section" value="orders-management">
                         <button type="submit" class="admin-order-btn">Update Meal Price</button>
                     </form>
                 </div>
@@ -959,6 +1070,77 @@
                 </form>
             </div>
         </div>
+
+        <!-- Bulk Import Modal -->
+        <div id="bulkImportModal" class="modal">
+            <div class="modal-content" style="max-width: 600px;">
+                <h3 style="margin-bottom: 20px; color: #dc2626;">📝 Bulk Import Menu Items</h3>
+                <p style="margin-bottom: 15px; color: #6b7280;">Enter one menu item per line. This will add to the selected category and day(s).</p>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>Category: <span id="bulkCategoryDisplay" style="font-weight: bold; color: #dc2626;"></span></label>
+                    <label>Target: <span id="bulkTargetDisplay" style="font-weight: bold; color: #dc2626;"></span></label>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <textarea id="bulkImportText" rows="10" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: monospace;" placeholder="Example:
+Grilled Chicken
+Beef Stew
+Fish Fillet
+Vegetarian Pasta"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                    <button type="button" onclick="hideBulkImport()" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Cancel</button>
+                    <button type="button" onclick="processBulkImport()" style="background: #dc2626; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">📝 Import Items</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PDF Upload Modal -->
+        <div id="pdfUploadModal" class="modal">
+            <div class="modal-content" style="max-width: 600px;">
+                <h3 style="margin-bottom: 20px; color: #dc2626;">📄 Upload Menu from PDF</h3>
+                <p style="margin-bottom: 15px; color: #6b7280;">Upload a PDF file to automatically extract and add menu items to the entire week.</p>
+
+                <form method="POST" action="{{ url_for('upload_menu_pdf') }}" enctype="multipart/form-data" onsubmit="return submitPdfForm(this)">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="pdf_file_modal">Select PDF File:</label>
+                        <input type="file" id="pdf_file_modal" name="pdf_file" accept=".pdf" required class="admin-input">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="target_day_modal">Add menu items to:</label>
+                        <select id="target_day_modal" name="target_day" class="admin-input">
+                            <option value="ALL_DAYS">All Days (Entire Week)</option>
+                            {% for day in days %}
+                                <option value="{{ day }}">{{ day }} Only</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 20px; padding: 15px; background: #fef3c7; border-radius: 8px; border: 1px solid #f59e0b;">
+                        <h4 style="margin: 0 0 10px 0; color: #92400e;">📋 How it works:</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #92400e; font-size: 14px;">
+                            <li>System will filter out headers, contact info, and irrelevant text</li>
+                            <li><strong>Proteins:</strong> chicken, beef, fish, meat, seafood, stew, etc.</li>
+                            <li><strong>Starch:</strong> rice, pasta, bread, potato, noodles, sadza, etc.</li>
+                            <li><strong>Salad:</strong> salad, vegetables, lettuce, coslow, chakalaka, etc.</li>
+                            <li>Choose to add to specific day or entire week</li>
+                            <li>Duplicate items are automatically filtered out</li>
+                        </ul>
+                    </div>
+
+                    <input type="hidden" name="pdf_target_day" value="ALL_DAYS">
+                    <input type="hidden" name="current_section" value="menu-management">
+
+                    <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                        <button type="button" onclick="hidePdfUpload()" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Cancel</button>
+                        <button type="submit" style="background: #dc2626; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">📄 Upload & Process PDF</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1040,8 +1222,65 @@
 
         function changeDate() {
             const selectedDate = document.getElementById('date-select').value;
-            window.location.href = `{{ url_for('admin_page') }}?date=${selectedDate}`;
+            const currentSection = getCurrentSection();
+            window.location.href = `{{ url_for('admin_page') }}?date=${selectedDate}&section=${currentSection}`;
         }
+
+        function getCurrentSection() {
+            const activeSection = document.querySelector('.content-section.active');
+            return activeSection ? activeSection.id.replace('-section', '') : 'menu-management';
+        }
+
+        function submitFormWithCurrentSection(form) {
+            const currentSection = getCurrentSection();
+            let sectionInput = form.querySelector('input[name="current_section"]');
+            if (sectionInput) {
+                sectionInput.value = currentSection;
+            }
+            return true;
+        }
+
+        function updateOrderMenuForDate() {
+            const selectedDate = document.getElementById('admin_order_date').value;
+            const dateObj = new Date(selectedDate);
+            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+
+            // Get the weekly menu data passed from backend
+            const weeklyMenu = {{ weekly_menu | tojson | safe }};
+            const categories = {{ categories | tojson | safe }};
+
+            // Update each category dropdown with items for the selected day
+            categories.forEach(category => {
+                const selectElement = document.getElementById(`admin_${category}`);
+                if (selectElement && weeklyMenu[dayName]) {
+                    // Clear existing options except the first one
+                    selectElement.innerHTML = `<option value="">Select ${category}</option>`;
+
+                    // Add items for the selected day
+                    const items = weeklyMenu[dayName][category] || [];
+                    items.forEach(item => {
+                        if (item.trim()) {
+                            const option = document.createElement('option');
+                            option.value = item;
+                            option.textContent = item;
+                            selectElement.appendChild(option);
+                        }
+                    });
+                }
+            });
+        }
+
+        // Initialize order menu when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateOrderMenuForDate();
+
+            // Check for section parameter in URL and show that section
+            const urlParams = new URLSearchParams(window.location.search);
+            const sectionParam = urlParams.get('section');
+            if (sectionParam) {
+                showSection(sectionParam);
+            }
+        });
 
         function showDay() {
             const selectedDay = document.getElementById('day-select').value;
@@ -1077,6 +1316,196 @@
         window.addEventListener('resize', function() {
             if (window.innerWidth > 768) {
                 document.getElementById('overlay').classList.remove('active');
+            }
+        });
+
+        // Menu management functions
+        function copyMenu() {
+            const fromDay = document.getElementById('copy-from-day').value;
+            const toDay = document.getElementById('copy-to-day').value;
+
+            if (!fromDay || !toDay) {
+                alert('Please select both source and destination days');
+                return;
+            }
+
+            if (fromDay === toDay) {
+                alert('Source and destination cannot be the same');
+                return;
+            }
+
+            const categories = {{ categories | tojson | safe }};
+
+            if (toDay === 'ALL_DAYS') {
+                const days = {{ days | tojson | safe }};
+                days.forEach(day => {
+                    if (day !== fromDay) {
+                        copyMenuBetweenDays(fromDay, day, categories);
+                    }
+                });
+                alert(`Menu copied from ${fromDay} to all other days!`);
+            } else {
+                copyMenuBetweenDays(fromDay, toDay, categories);
+                alert(`Menu copied from ${fromDay} to ${toDay}!`);
+            }
+        }
+
+        function copyMenuBetweenDays(fromDay, toDay, categories) {
+            categories.forEach(category => {
+                const fromContainer = document.getElementById(`${category}-${fromDay}-container`);
+                const toContainer = document.getElementById(`${category}-${toDay}-container`);
+
+                if (fromContainer && toContainer) {
+                    // Clear existing items in destination (except the last empty one)
+                    const toItems = toContainer.querySelectorAll('.menu-item-input');
+                    toItems.forEach((item, index) => {
+                        if (index < toItems.length - 1) {
+                            item.remove();
+                        }
+                    });
+
+                    // Copy items from source
+                    const fromItems = fromContainer.querySelectorAll('.menu-item-input input[type="text"]');
+                    fromItems.forEach((input, index) => {
+                        if (input.value.trim() && index < fromItems.length - 1) {
+                            // Add new item before the last empty one
+                            const newItem = document.createElement('div');
+                            newItem.className = 'menu-item-input';
+                            newItem.innerHTML = `
+                                <input type="text" name="${category}_${toDay}" value="${input.value}">
+                                <button type="button" class="remove-btn" onclick="removeItem(this)">❌ Remove</button>
+                            `;
+                            toContainer.insertBefore(newItem, toContainer.lastElementChild);
+                        }
+                    });
+                }
+            });
+        }
+
+        function showBulkImport() {
+            const category = document.getElementById('bulk-category').value;
+            const targetDay = document.getElementById('bulk-target-day').value;
+
+            document.getElementById('bulkCategoryDisplay').textContent = category.charAt(0).toUpperCase() + category.slice(1);
+            document.getElementById('bulkTargetDisplay').textContent = targetDay === 'ALL_DAYS' ? 'All Days' : targetDay;
+            document.getElementById('bulkImportText').value = '';
+            document.getElementById('bulkImportModal').style.display = 'flex';
+        }
+
+        function hideBulkImport() {
+            document.getElementById('bulkImportModal').style.display = 'none';
+        }
+
+        function processBulkImport() {
+            const category = document.getElementById('bulk-category').value;
+            const targetDay = document.getElementById('bulk-target-day').value;
+            const text = document.getElementById('bulkImportText').value.trim();
+
+            if (!text) {
+                alert('Please enter some menu items');
+                return;
+            }
+
+            const items = text.split('\n').filter(item => item.trim());
+
+            if (items.length === 0) {
+                alert('No valid items found');
+                return;
+            }
+
+            if (targetDay === 'ALL_DAYS') {
+                const days = {{ days | tojson | safe }};
+                days.forEach(day => {
+                    addBulkItemsToDay(category, day, items);
+                });
+                alert(`${items.length} items added to ${category} for all days!`);
+            } else {
+                addBulkItemsToDay(category, targetDay, items);
+                alert(`${items.length} items added to ${category} for ${targetDay}!`);
+            }
+
+            hideBulkImport();
+        }
+
+        function addBulkItemsToDay(category, day, items) {
+            const container = document.getElementById(`${category}-${day}-container`);
+            if (!container) return;
+
+            items.forEach(item => {
+                const newItem = document.createElement('div');
+                newItem.className = 'menu-item-input';
+                newItem.innerHTML = `
+                    <input type="text" name="${category}_${day}" value="${item.trim()}">
+                    <button type="button" class="remove-btn" onclick="removeItem(this)">❌ Remove</button>
+                `;
+                container.insertBefore(newItem, container.lastElementChild);
+            });
+        }
+
+        function clearAllMenus() {
+            if (!confirm('Are you sure you want to clear ALL menu items for ALL days? This cannot be undone.')) {
+                return;
+            }
+
+            const categories = {{ categories | tojson | safe }};
+            const days = {{ days | tojson | safe }};
+
+            days.forEach(day => {
+                categories.forEach(category => {
+                    const container = document.getElementById(`${category}-${day}-container`);
+                    if (container) {
+                        // Remove all items except the last empty one
+                        const items = container.querySelectorAll('.menu-item-input');
+                        items.forEach((item, index) => {
+                            if (index < items.length - 1) {
+                                item.remove();
+                            } else {
+                                // Clear the last empty input
+                                const input = item.querySelector('input[type="text"]');
+                                if (input) input.value = '';
+                            }
+                        });
+                    }
+                });
+            });
+
+            alert('All menus cleared!');
+        }
+
+        function showPdfUpload() {
+            document.getElementById('pdfUploadModal').style.display = 'flex';
+        }
+
+        function hidePdfUpload() {
+            document.getElementById('pdfUploadModal').style.display = 'none';
+        }
+
+        function submitPdfForm(form) {
+            const fileInput = form.querySelector('input[type="file"]');
+            if (!fileInput.files[0]) {
+                alert('Please select a PDF file');
+                return false;
+            }
+
+            if (!fileInput.files[0].name.toLowerCase().endsWith('.pdf')) {
+                alert('Please select a PDF file');
+                return false;
+            }
+
+            hidePdfUpload();
+            return true;
+        }
+
+        // Close modals when clicking outside
+        document.getElementById('bulkImportModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideBulkImport();
+            }
+        });
+
+        document.getElementById('pdfUploadModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hidePdfUpload();
             }
         });
     </script>
