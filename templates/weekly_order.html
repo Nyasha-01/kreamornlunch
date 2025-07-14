@@ -5,6 +5,741 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weekly Lunch Orders</title>
     <style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Lunch Orders</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #dc2626, #ef4444, #f87171);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .week-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #dc2626, #ef4444);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(220, 38, 38, 0.3);
+        }
+
+        h1 {
+            color: #1f2937;
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 1.1em;
+        }
+
+        .day-selector {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .day-selector label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 18px;
+        }
+
+        .day-select {
+            padding: 15px 25px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            background: white;
+            cursor: pointer;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23666" d="M2 0L0 2h4zm0 5L0 3h4z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 12px;
+            min-width: 250px;
+            transition: all 0.3s ease;
+        }
+
+        .day-select:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        .day-section {
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            background: linear-gradient(145deg, #ffffff, #f8fafc);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .day-header {
+            font-size: 24px;
+            font-weight: 700;
+            color: #dc2626;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #dc2626;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 16px;
+        }
+
+        .input-container {
+            position: relative;
+        }
+
+        .category-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            z-index: 2;
+        }
+
+        select {
+            width: 100%;
+            padding: 15px 15px 15px 50px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+            cursor: pointer;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23666" d="M2 0L0 2h4z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 12px;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        .submit-btn {
+            background: linear-gradient(45deg, #dc2626, #ef4444);
+            color: white;
+            padding: 18px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .submit-btn:hover:before {
+            left: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(220, 38, 38, 0.4);
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 30px;
+            color: #dc2626;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        .flash-messages {
+            margin-bottom: 30px;
+        }
+
+        .flash-message {
+            padding: 15px 20px;
+            border-radius: 12px;
+            background: linear-gradient(45deg, #10b981, #34d399);
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .current-day {
+            background: linear-gradient(145deg, #fef2f2, #fde8e8);
+            border-color: #dc2626;
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.1);
+        }
+
+        .no-menu-warning {
+            background: #fef3cd;
+            border: 1px solid #fbbf24;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #92400e;
+            font-weight: 500;
+        }
+
+        .order-summary {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .order-summary h3 {
+            color: #0369a1;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #bae6fd;
+        }
+
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        .order-day {
+            font-weight: 600;
+            color: #0369a1;
+        }
+
+        .order-details {
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .clear-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .clear-btn:hover {
+            background: #dc2626;
+        }
+
+        .mode-btn {
+            background: #f3f4f6;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(45deg, #dc2626, #ef4444);
+            color: white;
+            border-color: #dc2626;
+            box-shadow: 0 5px 15px rgba(220, 38, 38, 0.3);
+        }
+
+        .mode-btn:hover:not(.active) {
+            background: #e5e7eb;
+            border-color: #d1d5db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="week-badge">📅 Weekly Orders</div>
+            <h1>Plan Your Week</h1>
+            <p class="subtitle">Order your meals for the entire week</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash-message">✅ {{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="user-info">
+            <h3 style="color: #374151; margin-bottom: 30px; text-align: center;">
+                👤 Ordering for: <span style="color: #dc2626;">{{ user.full_name }}</span>
+            </h3>
+        </div>
+
+        <div class="day-selector">
+            <label for="day-select">📅 Select Day to Order:</label>
+            <select id="day-select" class="day-select" onchange="showDay()">
+                {% for day in days %}
+                    <option value="{{ day }}" {% if day == current_day %}selected{% endif %}>
+                        {{ day }}{% if day == current_day %} (Today){% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Order Mode Selector -->
+        <div style="text-align: center; margin-bottom: 30px;">
+            <label style="display: block; margin-bottom: 15px; font-weight: 600; color: #374151; font-size: 18px;">
+                🎯 Order Mode:
+            </label>
+            <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                <button type="button" id="single-day-btn" class="mode-btn active" onclick="setSingleDayMode()">
+                    📅 Single Day Order
+                </button>
+                <button type="button" id="weekly-btn" class="mode-btn" onclick="setWeeklyMode()">
+                    📆 Weekly Order
+                </button>
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="order-summary" id="order-summary" style="display: none;">
+            <h3>📋 Your Weekly Order Summary</h3>
+            <div id="summary-content"></div>
+        </div>
+
+        <form method="POST" id="order-form">
+            <input type="hidden" name="order_day" id="order-day-input">
+
+            {% for day in days %}
+                <div class="day-section" id="day-{{ day }}" style="{% if loop.index0 != 0 %}display: none;{% endif %}">
+                    <div class="day-header">
+                        📅 {{ day }}
+                    </div>
+
+                    {% set day_menu = weekly_menu.get(day, {}) %}
+                    {% set has_menu_items = false %}
+                    {% for category in categories %}
+                        {% set category_items = day_menu.get(category, []) %}
+                        {% for item in category_items %}
+                            {% if item and item.strip() %}
+                                {% set has_menu_items = true %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+
+                    <div class="form-row">
+                        {% set all_categories = [] %}
+                        
+                        {# First add global categories #}
+                        {% for category in categories %}
+                            {% if category not in all_categories %}
+                                {% set _ = all_categories.append(category) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {# Then add any day-specific categories that aren't in global list #}
+                        {% for category in day_menu.keys() %}
+                            {% if category not in all_categories %}
+                                {% set _ = all_categories.append(category) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {# Display all categories (global + day-specific) that have items #}
+                        {% for category in all_categories %}
+                            {% set category_items = day_menu.get(category, []) %}
+                            {% if category_items %}
+                            {% set has_valid_items = [] %}
+                            {% for item in category_items %}
+                                {% if item and item.strip() %}
+                                    {% set _ = has_valid_items.append(1) %}
+                                {% endif %}
+                            {% endfor %}
+                            {% if has_valid_items %}
+                                {% set category_icon = '🍖' if category == 'proteins' else '🍚' if category == 'starch' else '🥗' if category == 'salad' else '🍽️' %}
+                                <div class="form-group">
+                                    <label for="{{ category }}_{{ day }}">{{ category_icon }} {{ category.title() }}:</label>
+                                    <select name="{{ category }}_{{ day }}" id="{{ category }}_{{ day }}" 
+                                            {% if category in exclusive_categories %}data-exclusive="true"{% endif %}
+                                            onchange="updateOrderSummary()">
+                                        <option value="">Select {{ category }}</option>
+                                        {% for item in category_items %}
+                                            {% if item and item.strip() %}
+                                                <option value="{{ item }}">{{ item }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <!-- Single day submit button (hidden by default) -->
+                    <div class="single-day-submit" style="display: none; margin-top: 20px;">
+                        <button type="button" class="submit-btn" onclick="submitSingleDay('{{ day }}')">
+                            ✨ Submit Order for {{ day }}
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <!-- Weekly submit button -->
+            <div class="weekly-submit">
+                <button type="button" class="submit-btn" onclick="submitWeeklyOrder()">
+                    ✨ Submit Weekly Orders
+                </button>
+            </div>
+        </form>
+
+        <a href="{{ url_for('home') }}" class="back-link">← Back to Home</a>
+    </div>
+
+    <script>
+        // Auto-hide flash messages after 3 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                setTimeout(function() {
+                    message.style.transition = 'opacity 0.5s ease-out';
+                    message.style.opacity = '0';
+                    setTimeout(function() {
+                        message.remove();
+                    }, 500);
+                }, 3000);
+            });
+        });
+
+        // Global variables
+        const exclusiveCategories = {{ exclusive_categories|tojson|safe }};
+        const days = {{ days|tojson|safe }};
+        const weeklyMenu = {{ weekly_menu|tojson|safe }};
+
+        let isWeeklyMode = false;
+
+        function showDay() {
+            const selectedDay = document.getElementById('day-select').value;
+
+            // Hide all day sections
+            days.forEach(day => {
+                const daySection = document.getElementById(`day-${day}`);
+                if (daySection) {
+                    daySection.style.display = 'none';
+                }
+            });
+
+            // Show selected day section
+            const targetSection = document.getElementById(`day-${selectedDay}`);
+            if (targetSection) {
+                targetSection.style.display = 'block';
+            }
+
+            // Update submit buttons visibility based on mode
+            updateSubmitButtons();
+        }
+
+        function setSingleDayMode() {
+            isWeeklyMode = false;
+            document.getElementById('single-day-btn').classList.add('active');
+            document.getElementById('weekly-btn').classList.remove('active');
+            updateSubmitButtons();
+            updateOrderSummary();
+        }
+
+        function setWeeklyMode() {
+            isWeeklyMode = true;
+            document.getElementById('weekly-btn').classList.add('active');
+            document.getElementById('single-day-btn').classList.remove('active');
+            updateSubmitButtons();
+            updateOrderSummary();
+        }
+
+        function updateSubmitButtons() {
+            const singleDaySubmits = document.querySelectorAll('.single-day-submit');
+            const weeklySubmit = document.querySelector('.weekly-submit');
+
+            if (isWeeklyMode) {
+                singleDaySubmits.forEach(btn => btn.style.display = 'none');
+                weeklySubmit.style.display = 'block';
+            } else {
+                singleDaySubmits.forEach(btn => btn.style.display = 'none');
+                weeklySubmit.style.display = 'none';
+
+                // Show submit button only for currently selected day
+                const selectedDay = document.getElementById('day-select').value;
+                const currentDaySubmit = document.querySelector(`#day-${selectedDay} .single-day-submit`);
+                if (currentDaySubmit) {
+                    currentDaySubmit.style.display = 'block';
+                }
+            }
+        }
+
+        function submitSingleDay(day) {
+            const form = document.getElementById('order-form');
+            const orderDayInput = document.getElementById('order-day-input');
+
+            orderDayInput.value = day;
+            form.action = "{{ url_for('submit_daily_order') }}";
+            form.submit();
+        }
+
+        function submitWeeklyOrder() {
+            const form = document.getElementById('order-form');
+            const orderDayInput = document.getElementById('order-day-input');
+
+            orderDayInput.value = '';
+            form.action = "{{ url_for('submit_weekly_order') }}";
+            form.submit();
+        }
+
+        function setupExclusiveLogic() {
+            // Wait a bit for all elements to be rendered
+            setTimeout(() => {
+                days.forEach(day => {
+                    // Use querySelectorAll to find all selects for this day, regardless of visibility
+                    const daySelects = Array.from(document.querySelectorAll('select')).filter(select => 
+                        select.name && select.name.endsWith(`_${day}`) && !select.classList.contains('day-select')
+                    );
+
+                    daySelects.forEach(select => {
+                        select.addEventListener('change', function() {
+                            const selectName = this.name;
+                            const selectedCategory = selectName.split('_')[0];
+                            const selectedValue = this.value;
+
+                            // If an exclusive category is selected with a value
+                            if (exclusiveCategories.includes(selectedCategory) && selectedValue) {
+                                // Disable all other selects for this day and clear their values
+                                daySelects.forEach(otherSelect => {
+                                    if (otherSelect.name !== selectName) {
+                                        otherSelect.value = '';
+                                        otherSelect.disabled = true;
+                                        otherSelect.style.opacity = '0.5';
+                                    }
+                                });
+                            } 
+                            // If exclusive category is deselected
+                            else if (exclusiveCategories.includes(selectedCategory) && !selectedValue) {
+                                // Re-enable all selects for this day
+                                daySelects.forEach(otherSelect => {
+                                    otherSelect.disabled = false;
+                                    otherSelect.style.opacity = '1';
+                                });
+                            }
+                            // Check if any exclusive category has a value for this day
+                            else {
+                                let hasExclusiveSelection = false;
+                                daySelects.forEach(checkSelect => {
+                                    const checkCategory = checkSelect.name.split('_')[0];
+                                    if (exclusiveCategories.includes(checkCategory) && checkSelect.value) {
+                                        hasExclusiveSelection = true;
+                                    }
+                                });
+
+                                if (!hasExclusiveSelection) {
+                                    // Re-enable all selects if no exclusive category is selected
+                                    daySelects.forEach(otherSelect => {
+                                        otherSelect.disabled = false;
+                                        otherSelect.style.opacity = '1';
+                                    });
+                                }
+                            }
+
+                            updateOrderSummary();
+                        });
+                    });
+                });
+            }, 100);
+        }
+
+        function updateOrderSummary() {
+            const summaryDiv = document.getElementById('order-summary');
+            const summaryContent = document.getElementById('summary-content');
+            let hasOrders = false;
+            let summaryHtml = '';
+
+            if (isWeeklyMode) {
+                // Show all days with orders for weekly mode
+                days.forEach(day => {
+                    const dayOrders = [];
+                    const categories = ['proteins', 'starch', 'salad'];
+
+                    categories.forEach(category => {
+                        const select = document.getElementById(`${category}_${day}`);
+                        if (select && select.value) {
+                            dayOrders.push(`${category}: ${select.value}`);
+                        }
+                    });
+
+                    if (dayOrders.length > 0) {
+                        hasOrders = true;
+                        summaryHtml += `
+                            <div class="order-item">
+                                <div>
+                                    <div class="order-day">${day}</div>
+                                    <div class="order-details">${dayOrders.join(', ')}</div>
+                                </div>
+                                <button type="button" class="clear-btn" onclick="clearDayOrder('${day}')">Clear</button>
+                            </div>
+                        `;
+                    }
+                });
+            } else {
+                // Show only current day for single day mode
+                const selectedDay = document.getElementById('day-select').value;
+                const dayOrders = [];
+                const categories = ['proteins', 'starch', 'salad'];
+
+                categories.forEach(category => {
+                    const select = document.getElementById(`${category}_${selectedDay}`);
+                    if (select && select.value) {
+                        dayOrders.push(`${category}: ${select.value}`);
+                    }
+                });
+
+                if (dayOrders.length > 0) {
+                    hasOrders = true;
+                    summaryHtml = `
+                        <div class="order-item">
+                            <div>
+                                <div class="order-day">${selectedDay}</div>
+                                <div class="order-details">${dayOrders.join(', ')}</div>
+                            </div>
+                            <button type="button" class="clear-btn" onclick="clearDayOrder('${selectedDay}')">Clear</button>
+                        </div>
+                    `;
+                }
+            }
+
+            if (hasOrders) {
+                summaryContent.innerHTML = summaryHtml;
+                summaryDiv.style.display = 'block';
+            } else {
+                summaryDiv.style.display = 'none';
+            }
+        }
+
+        function clearDayOrder(day) {
+            const categories = ['proteins', 'starch', 'salad'];
+            categories.forEach(category => {
+                const select = document.getElementById(`${category}_${day}`);
+                if (select) {
+                    select.value = '';
+                    select.disabled = false;
+                    select.style.opacity = '1';
+                }
+            });
+            updateOrderSummary();
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, setting up exclusive logic...');
+
+            // Debug: Check if selects are found
+            const allSelects = document.querySelectorAll('select:not(.day-select)');
+            console.log(`Found ${allSelects.length} select elements`);
+
+            // Debug: List all select IDs
+            allSelects.forEach((select, index) => {
+                console.log(`Select ${index + 1}: ${select.id || select.name || 'no-id'}`);
+            });
+
+            setupExclusiveLogic();
+            updateSubmitButtons();
+            updateOrderSummary();
+
+            // Auto-show current day for single day mode
+            showDay();
+
+            // Verify menu data is available
+            console.log('Menu data:', weeklyMenu);
+        });
+    </script>
+</body>
+</html>
+
         * {
             margin: 0;
             padding: 0;
