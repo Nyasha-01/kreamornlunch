@@ -1,12 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 import json
 import os
+import re
 from datetime import datetime, timedelta
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 import io
 import hashlib
-import re
 import threading
 import time
 
@@ -495,8 +495,16 @@ def update_weekly_menu():
     
     weekly_menu = load_weekly_menu()
     categories = load_categories()
+    current_section = request.form.get('current_section', 'menu-management')
     
-    print(f"Current categories: {categories}")
+    # Get all unique categories across all days
+    all_categories = set()
+    for day_menu in weekly_menu.values():
+        all_categories.update(day_menu.keys())
+    all_categories = sorted(list(all_categories))
+    
+    print(f"Global categories: {categories}")
+    print(f"All categories found in menu: {all_categories}")
     print(f"Current menu before update: {weekly_menu}")
 
     # Track if any changes were made
@@ -505,7 +513,11 @@ def update_weekly_menu():
 
     for day in DAYS_OF_WEEK:
         print(f"\nProcessing day: {day}")
-        for category in categories:
+        # Process all categories that exist for this specific day
+        day_categories = list(weekly_menu.get(day, {}).keys())
+        print(f"Categories for {day}: {day_categories}")
+        
+        for category in day_categories:
             form_key = f'{category}_{day}'
             items = request.form.getlist(form_key)
             print(f"  Form key '{form_key}': {items}")
@@ -573,18 +585,19 @@ def update_weekly_menu():
         flash('No changes detected in the menu.')
 
     print(f"=== MENU UPDATE DEBUG END ===\n")
-    return redirect(url_for('admin_page'))
+    return redirect(url_for('admin_page', section=current_section))
 
 @app.route('/admin_place_order', methods=['POST'])
 @admin_required
 def admin_place_order():
     user_name = request.form.get('user_name')
     order_date = request.form.get('order_date', datetime.now().strftime('%Y-%m-%d'))
+    current_section = request.form.get('current_section', 'place-order')
     categories = load_categories()
 
     if not user_name:
         flash('Please enter the person\'s name')
-        return redirect(url_for('admin_page'))
+        return redirect(url_for('admin_page', section=current_section))
 
     orders = load_orders()
 
@@ -604,67 +617,175 @@ def admin_place_order():
 
     save_orders(orders)
     flash(f'Order placed successfully for {user_name}!')
-    return redirect(url_for('admin_page', date=order_date))
+    return redirect(url_for('admin_page', date=order_date, section=current_section))
 
 @app.route('/add_category', methods=['POST'])
 @admin_required
 def add_category():
     category_name = request.form.get('category_name', '').strip().lower()
+    category_scope = request.form.get('category_scope', 'all_days')
+    current_section = request.form.get('current_section', 'categories')
+
+    print(f"=== ADD CATEGORY DEBUG START ===")
+    print(f"Raw form data: {dict(request.form)}")
+    print(f"Category name: '{category_name}'")
+    print(f"Category scope: '{category_scope}'")
+    print(f"Current section: '{current_section}'")
 
     if not category_name:
+        print("ERROR: Empty category name")
         flash('Please enter a category name')
-        return redirect(url_for('admin_page'))
+        return redirect(url_for('admin_page', section=current_section))
 
     categories = load_categories()
-
-    if category_name in categories:
-        flash(f'Category "{category_name}" already exists')
-        return redirect(url_for('admin_page'))
-
-    categories.append(category_name)
-    save_categories(categories)
-
-    # Update weekly menu to include new category
     weekly_menu = load_weekly_menu()
+    
+    print(f"Before - Global categories: {categories}")
+    print(f"Before - Weekly menu structure: {[(day, list(day_menu.keys())) for day, day_menu in weekly_menu.items()]}")
+    
+    # Ensure weekly_menu has all days initialized
     for day in DAYS_OF_WEEK:
-        if category_name not in weekly_menu[day]:
-            weekly_menu[day][category_name] = []
-    save_weekly_menu(weekly_menu)
+        if day not in weekly_menu:
+            weekly_menu[day] = {}
+            print(f"Initialized empty day: {day}")
 
-    flash(f'Category "{category_name}" added successfully!')
-    return redirect(url_for('admin_page'))
+    if category_scope == 'all_days':
+        print(f"Processing 'all_days' scope")
+        # Check if category already exists in global categories
+        if category_name in categories:
+            print(f"Category '{category_name}' already exists in global categories")
+            flash(f'Category "{category_name}" already exists in global categories')
+            return redirect(url_for('admin_page', section=current_section))
+        
+        # Add to global categories
+        categories.append(category_name)
+        save_categories(categories)
+        print(f"Added '{category_name}' to global categories")
+        
+        # Add to all days
+        for day in DAYS_OF_WEEK:
+            if category_name not in weekly_menu[day]:
+                weekly_menu[day][category_name] = []
+                print(f"Added '{category_name}' to day {day}")
+            else:
+                print(f"Category '{category_name}' already exists in {day}")
+        
+        flash(f'Category "{category_name}" added to all days successfully!')
+    else:
+        # Add to specific day only
+        print(f"Processing specific day scope: {category_scope}")
+        if category_scope not in DAYS_OF_WEEK:
+            print(f"ERROR: Invalid day selection: '{category_scope}' not in {DAYS_OF_WEEK}")
+            flash('Invalid day selection')
+            return redirect(url_for('admin_page', section=current_section))
+        
+        # Check if category already exists in that specific day
+        if category_name in weekly_menu[category_scope]:
+            print(f"Category '{category_name}' already exists in {category_scope}")
+            flash(f'Category "{category_name}" already exists in {category_scope}')
+            return redirect(url_for('admin_page', section=current_section))
+        
+        # Add to the specific day only
+        weekly_menu[category_scope][category_name] = []
+        print(f"Added '{category_name}' to {category_scope}")
+        print(f"Day {category_scope} now has categories: {list(weekly_menu[category_scope].keys())}")
+        
+        flash(f'Category "{category_name}" added to {category_scope} only!')
+    
+    # Save the updated weekly menu
+    print(f"Saving weekly menu...")
+    save_weekly_menu(weekly_menu)
+    
+    # Verify save worked
+    print(f"Verifying save...")
+    verify_menu = load_weekly_menu()
+    print(f"After save - Global categories: {load_categories()}")
+    print(f"After save - Weekly menu structure: {[(day, list(day_menu.keys())) for day, day_menu in verify_menu.items()]}")
+    
+    if category_scope != 'all_days' and category_scope in DAYS_OF_WEEK:
+        verify_categories = list(verify_menu.get(category_scope, {}).keys())
+        print(f"Verification - {category_scope} categories: {verify_categories}")
+        if category_name in verify_categories:
+            print(f"✓ SUCCESS: Category '{category_name}' successfully added to {category_scope}")
+        else:
+            print(f"✗ FAILED: Category '{category_name}' not found in {category_scope} after save")
+    
+    print(f"=== ADD CATEGORY DEBUG END ===\n")
+    return redirect(url_for('admin_page', section=current_section))
 
 @app.route('/remove_category', methods=['POST'])
 @admin_required
 def remove_category():
+    # Redirect to the new specific routes
+    return redirect(url_for('admin_page', section='categories'))
+
+@app.route('/remove_global_category', methods=['POST'])
+@admin_required
+def remove_global_category():
     category_name = request.form.get('category_name')
+    current_section = request.form.get('current_section', 'categories')
 
     if not category_name:
         flash('Invalid category')
-        return redirect(url_for('admin_page'))
+        return redirect(url_for('admin_page', section=current_section))
 
     categories = load_categories()
 
     if category_name in DEFAULT_CATEGORIES:
         flash(f'Cannot remove default category "{category_name}"')
-        return redirect(url_for('admin_page'))
+        return redirect(url_for('admin_page', section=current_section))
 
     if category_name not in categories:
-        flash(f'Category "{category_name}" not found')
-        return redirect(url_for('admin_page'))
+        flash(f'Category "{category_name}" not found in global categories')
+        return redirect(url_for('admin_page', section=current_section))
 
+    # Remove from global categories
     categories.remove(category_name)
     save_categories(categories)
 
-    # Remove category from weekly menu
+    # Remove category from weekly menu (all days)
     weekly_menu = load_weekly_menu()
     for day in DAYS_OF_WEEK:
         if category_name in weekly_menu[day]:
             del weekly_menu[day][category_name]
     save_weekly_menu(weekly_menu)
 
-    flash(f'Category "{category_name}" removed successfully!')
-    return redirect(url_for('admin_page'))
+    # Remove from exclusive categories if exists
+    exclusive_categories = load_exclusive_categories()
+    if category_name in exclusive_categories:
+        exclusive_categories.remove(category_name)
+        save_exclusive_categories(exclusive_categories)
+
+    flash(f'Global category "{category_name}" removed from all days successfully!')
+    return redirect(url_for('admin_page', section=current_section))
+
+@app.route('/remove_day_category', methods=['POST'])
+@admin_required
+def remove_day_category():
+    category_name = request.form.get('category_name')
+    day_name = request.form.get('day_name')
+    current_section = request.form.get('current_section', 'categories')
+
+    if not category_name or not day_name:
+        flash('Invalid category or day')
+        return redirect(url_for('admin_page', section=current_section))
+
+    if day_name not in DAYS_OF_WEEK:
+        flash('Invalid day')
+        return redirect(url_for('admin_page', section=current_section))
+
+    weekly_menu = load_weekly_menu()
+    
+    if day_name not in weekly_menu or category_name not in weekly_menu[day_name]:
+        flash(f'Category "{category_name}" not found in {day_name}')
+        return redirect(url_for('admin_page', section=current_section))
+
+    # Remove category from specific day only
+    del weekly_menu[day_name][category_name]
+    save_weekly_menu(weekly_menu)
+
+    flash(f'Category "{category_name}" removed from {day_name} successfully!')
+    return redirect(url_for('admin_page', section=current_section))
 
 @app.route('/toggle_exclusive_category', methods=['POST'])
 @admin_required
@@ -760,23 +881,24 @@ def reset_password():
 @admin_required
 def update_meal_price():
     meal_price = request.form.get('meal_price')
+    current_section = request.form.get('current_section', 'orders-management')
     
     if not meal_price:
         flash('Please enter a meal price')
-        return redirect(url_for('admin_page'))
+        return redirect(url_for('admin_page', section=current_section))
     
     try:
         price_float = float(meal_price)
         if price_float < 0:
             flash('Meal price cannot be negative')
-            return redirect(url_for('admin_page'))
+            return redirect(url_for('admin_page', section=current_section))
         
         save_meal_price(price_float)
         flash(f'Meal price updated to ${price_float:.2f}')
     except ValueError:
         flash('Invalid meal price format')
     
-    return redirect(url_for('admin_page'))
+    return redirect(url_for('admin_page', section=current_section))
 
 @app.route('/admin_create_account', methods=['POST'])
 @admin_required
@@ -1049,6 +1171,301 @@ def storage_info():
     flash(f'Storage Info: {total_users} users, {total_dates} order dates, {total_orders} total orders. Range: {oldest_date} to {newest_date}')
     return redirect(url_for('admin_page'))
 
+@app.route('/upload_menu_pdf', methods=['POST'])
+@admin_required
+def upload_menu_pdf():
+    current_section = request.form.get('current_section', 'menu-management')
+    
+    if 'pdf_file' not in request.files:
+        flash('No PDF file selected')
+        return redirect(url_for('admin_page', section=current_section))
+    
+    file = request.files['pdf_file']
+    if file.filename == '':
+        flash('No PDF file selected')
+        return redirect(url_for('admin_page', section=current_section))
+    
+    if not file.filename.lower().endswith('.pdf'):
+        flash('Please upload a PDF file')
+        return redirect(url_for('admin_page', section=current_section))
+    
+    target_day = request.form.get('target_day', 'ALL_DAYS')
+    
+    try:
+        try:
+            import PyPDF2
+        except ImportError:
+            flash('PyPDF2 library not installed. Please install it to use PDF upload feature.')
+            return redirect(url_for('admin_page', section=current_section))
+        
+        # Read PDF content
+        pdf_reader = PyPDF2.PdfReader(file)
+        text_content = ""
+        
+        for page in pdf_reader.pages:
+            text_content += page.extract_text() + "\n"
+        
+        if not text_content.strip():
+            flash('Could not extract text from PDF. Please ensure the PDF contains readable text.')
+            return redirect(url_for('admin_page', section=current_section))
+        
+        print(f"=== PDF PROCESSING DEBUG ===")
+        print(f"Raw text length: {len(text_content)}")
+        print(f"First 500 chars: {text_content[:500]}")
+        
+        # Process extracted text
+        weekly_menu_items = process_pdf_text(text_content)
+        
+        print(f"Processed weekly menu items: {weekly_menu_items}")
+        print(f"=== END PDF PROCESSING DEBUG ===")
+        
+        # Check if any items were extracted
+        total_items = sum(len(items) for day_menu in weekly_menu_items.values() for items in day_menu.values())
+        if total_items == 0:
+            flash('No menu items could be extracted from the PDF. Please check the PDF format.')
+            return redirect(url_for('admin_page', section=current_section))
+        
+        # Load existing menu and categories (only work with existing categories)
+        weekly_menu = load_weekly_menu()
+        categories = load_categories()
+        
+        # Only process the three main categories: proteins, starch, salad
+        main_categories = ['proteins', 'starch', 'salad']
+        
+        # Filter weekly_menu_items to only include main categories
+        filtered_menu_items = {}
+        for day in DAYS_OF_WEEK:
+            filtered_menu_items[day] = {}
+            for category in main_categories:
+                if category in weekly_menu_items.get(day, {}):
+                    filtered_menu_items[day][category] = weekly_menu_items[day][category]
+                else:
+                    filtered_menu_items[day][category] = []
+        
+        # Replace weekly_menu_items with filtered version
+        weekly_menu_items = filtered_menu_items
+        
+        items_added = 0
+        main_categories = ['proteins', 'starch', 'salad']
+        
+        if target_day == 'ALL_DAYS':
+            # Use day-specific items for each day
+            for day in DAYS_OF_WEEK:
+                for category in main_categories:  # Only process main categories
+                    if category in weekly_menu_items.get(day, {}):
+                        # Replace existing items with new ones from PDF
+                        weekly_menu[day][category] = weekly_menu_items[day][category][:]
+                        items_added += len(weekly_menu_items[day][category])
+        else:
+            if target_day in DAYS_OF_WEEK:
+                # Use items for the specific target day
+                for category in main_categories:  # Only process main categories
+                    if category in weekly_menu_items.get(target_day, {}):
+                        # Replace existing items with new ones from PDF
+                        weekly_menu[target_day][category] = weekly_menu_items[target_day][category][:]
+                        items_added += len(weekly_menu_items[target_day][category])
+        
+        save_weekly_menu(weekly_menu)
+        target_display = "the entire week" if target_day == 'ALL_DAYS' else target_day
+        
+        # Show breakdown of items added by day
+        breakdown = []
+        for day in DAYS_OF_WEEK:
+            day_total = sum(len(items) for items in weekly_menu_items.get(day, {}).values())
+            if day_total > 0:
+                breakdown.append(f"{day}: {day_total} items")
+        
+        # Prepare success message
+        success_msg = f'PDF processed successfully! Added menu items to {target_display}.'
+        if breakdown:
+            success_msg += f' {", ".join(breakdown)}'
+            flash(success_msg)
+        else:
+            flash('PDF processed but no items were extracted for the selected day(s).')
+        
+    except ImportError:
+        flash('PDF processing library not available. Please add menu items manually.')
+    except Exception as e:
+        print(f"PDF processing error: {str(e)}")
+        flash(f'Error processing PDF: {str(e)}')
+    
+    return redirect(url_for('admin_page', section=current_section))
+
+def process_pdf_text(text_content):
+    """Process extracted PDF text and categorize menu items by day, filtering out irrelevant content"""
+    lines = text_content.split('\n')
+    
+    # Initialize menu structure for each day - only main categories
+    weekly_menu_items = {}
+    for day in DAYS_OF_WEEK:
+        weekly_menu_items[day] = {
+            'proteins': [],
+            'starch': [],
+            'salad': []
+        }
+    
+    # Keywords for categorization
+    protein_keywords = ['chicken', 'beef', 'fish', 'pork', 'meat', 'turkey', 'lamb', 'seafood', 'prawns', 'shrimp', 'salmon', 'tuna', 'liver', 'oxtail', 'offals', 'stew', 'curry', 'mince', 'beans']
+    starch_keywords = ['rice', 'pasta', 'bread', 'potato', 'noodles', 'quinoa', 'couscous', 'barley', 'oats', 'wheat', 'sadza', 'spaghetti', 'bolognaise', 'mashed', 'fried rice']
+    salad_keywords = ['salad', 'greens', 'vegetables', 'lettuce', 'tomato', 'cucumber', 'spinach', 'kale', 'cabbage', 'coleslaw', 'chakalaka', 'nicoise', 'slaw', 'salsa', 'coslow']
+    
+    # Content to filter out
+    filter_patterns = [
+        r'takeaways.*catering', r'phone.*\+263', r'@mrsadza', r'compiled by',
+        r'thank you', r'mr sadza', r'corporate lunch', r'harare',
+        r'robson.*manyika', r'wayne.*street', r'pfugari.*house',
+        r'weddings.*conferences', r'^\d+$', r'^\*+$', r'production$',
+        r'bowls day', r'menu$'
+    ]
+    
+    # Day patterns - more comprehensive
+    day_patterns = {
+        'monday': r'monday|mon\b',
+        'tuesday': r'tuesday|tue\b|tues\b',
+        'wednesday': r'wednesday|wed\b',
+        'thursday': r'thursday|thu\b|thur\b|thurs\b',
+        'friday': r'friday|fri\b'
+    }
+    
+    # Category header patterns
+    category_patterns = {
+        'proteins': r'^protein[s]?$|^meat[s]?$|^main[s]?$',
+        'starch': r'^starch[es]?$|^carb[s]?$|^side[s]?$',
+        'salad': r'^salad[s]?$|^vegetable[s]?$|^veg[s]?$'
+    }
+    
+    current_day = None
+    current_category = None
+    
+    print(f"=== ENHANCED PDF PROCESSING DEBUG ===")
+    
+    for i, line in enumerate(lines):
+        line = line.strip()
+        if not line or len(line) < 3:
+            continue
+            
+        line_lower = line.lower()
+        
+        # Check for day headers
+        day_found = None
+        for day_name, pattern in day_patterns.items():
+            if re.search(pattern, line_lower):
+                day_found = day_name.title()
+                break
+        
+        if day_found and day_found in DAYS_OF_WEEK:
+            current_day = day_found
+            current_category = None
+            print(f"Found day: {current_day} (line {i}: '{line}')")
+            continue
+        
+        # Check for category headers
+        category_found = None
+        for category_name, pattern in category_patterns.items():
+            if re.search(pattern, line_lower):
+                category_found = category_name
+                break
+        
+        if category_found:
+            current_category = category_found
+            print(f"Found category: {current_category} for day: {current_day} (line {i}: '{line}')")
+            continue
+        
+        # Apply filter patterns
+        should_skip = False
+        for pattern in filter_patterns:
+            if re.search(pattern, line_lower):
+                should_skip = True
+                break
+        
+        if should_skip:
+            continue
+        
+        # Skip single words, numbers, or very short phrases
+        if len(line.split()) < 2 or line.isdigit() or len(line) < 5:
+            continue
+        
+        # Skip lines that are mostly numbers or special characters
+        if re.match(r'^[\d\s\W]+$', line):
+            continue
+        
+        # Clean up the line
+        line = re.sub(r'\s+', ' ', line).strip()
+        
+        # If we have both day and category context, add the item
+        if current_day and current_category:
+            if line not in weekly_menu_items[current_day][current_category]:
+                weekly_menu_items[current_day][current_category].append(line)
+                print(f"Added to {current_day} {current_category}: {line}")
+            continue
+        
+        # If we have a day but no category, try to auto-categorize
+        if current_day:
+            categorized = False
+            
+            # Check proteins first (most specific)
+            for keyword in protein_keywords:
+                if keyword in line_lower:
+                    if line not in weekly_menu_items[current_day]['proteins']:
+                        weekly_menu_items[current_day]['proteins'].append(line)
+                        print(f"Auto-categorized to {current_day} proteins: {line}")
+                        categorized = True
+                        break
+            
+            if not categorized:
+                # Check starch
+                for keyword in starch_keywords:
+                    if keyword in line_lower:
+                        if line not in weekly_menu_items[current_day]['starch']:
+                            weekly_menu_items[current_day]['starch'].append(line)
+                            print(f"Auto-categorized to {current_day} starch: {line}")
+                            categorized = True
+                            break
+            
+            if not categorized:
+                # Check salad
+                for keyword in salad_keywords:
+                    if keyword in line_lower:
+                        if line not in weekly_menu_items[current_day]['salad']:
+                            weekly_menu_items[current_day]['salad'].append(line)
+                            print(f"Auto-categorized to {current_day} salad: {line}")
+                            categorized = True
+                            break
+            
+            # If not categorized but looks like food, add to proteins
+            if not categorized:
+                food_indicators = ['grilled', 'fried', 'baked', 'roasted', 'steamed', 'mixed', 'fresh', 'with', 'and', 'honey', 'garlic', 'herb', 'spicy', 'sweet']
+                has_food_indicators = any(indicator in line_lower for indicator in food_indicators)
+                
+                if (len(line.split()) >= 2 and 
+                    has_food_indicators and 
+                    len(line) > 8 and
+                    not line.lower().startswith(('the ', 'and ', 'or ', 'but ', 'a ', 'an '))):
+                    if line not in weekly_menu_items[current_day]['proteins']:
+                        weekly_menu_items[current_day]['proteins'].append(line)
+                        print(f"Auto-categorized to {current_day} proteins (general): {line}")
+    
+    # Sort and clean up results
+    for day in weekly_menu_items:
+        for category in weekly_menu_items[day]:
+            weekly_menu_items[day][category] = sorted(list(set(weekly_menu_items[day][category])))
+    
+    # Print summary
+    total_items = sum(len(items) for day_menu in weekly_menu_items.values() for items in day_menu.values())
+    print(f"Total items parsed: {total_items}")
+    for day in DAYS_OF_WEEK:
+        day_total = sum(len(items) for items in weekly_menu_items[day].values())
+        if day_total > 0:
+            print(f"{day}: {day_total} items")
+            for category in ['proteins', 'starch', 'salad']:
+                items = weekly_menu_items[day][category]
+                if items:
+                    print(f"  {category}: {len(items)} items - {items[:3]}{'...' if len(items) > 3 else ''}")
+    
+    print(f"=== END ENHANCED PDF PROCESSING DEBUG ===")
+    
+    return weekly_menu_items
+
 if __name__ == '__main__':
     # Run initial cleanup on startup
     cleanup_old_orders()
@@ -1056,4 +1473,6 @@ if __name__ == '__main__':
     # Start the background cleanup scheduler
     start_cleanup_scheduler()
 
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Get port from environment or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
